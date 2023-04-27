@@ -54,6 +54,7 @@ class Restaurant(db.Model, SerializerMixin):
     serializerules=('-swipe_instances.restaurants_si_backref',)
 
     id=db.Column(db.Integer, primary_key=True)
+    name=db.Column(db.String)
     address=db.Column(db.String)
     cuisine=db.Column(db.String)
     picture=db.Column(db.String)
@@ -70,7 +71,7 @@ class SwipeInstance(db.Model, SerializerMixin):
     swipe_session_id=db.Column(db.Integer, db.ForeignKey('swipe_sessions.id'))
 
 
-class SwipeSessions(db.Model, SerializerMixin):
+class SwipeSession(db.Model, SerializerMixin):
     __tablename__='swipe_sessions'
 
     serializerules=('-swipe_instances.swipe_sessions_si_backref',)

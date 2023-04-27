@@ -3,7 +3,7 @@ from flask_session import Session
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
 import requests
-from models import User, Friend, Restaurant, SwipeInstance, SwipeSessions
+from models import User, Friend, Restaurant, SwipeInstance, SwipeSession
 from flask_bcrypt import Bcrypt
 from services import bcrypt,db
 import os
