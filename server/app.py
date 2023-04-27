@@ -40,17 +40,25 @@ class AllUsers(Resource):
 
     def post(self):
         data=request.get_json()
-        new_user=User(
-            username=data['username'],
-            email=data['email'],
-            type=data['type']
-        )
-        new_user.password_hash=data['password']
-        db.session.add(new_user)
-        db.session.commit()
-        session['user_id']=new_user.id
-        session['user_type']=new_user.type
-        return make_response(new_user.to_dict(), 202)
+        exist_user=User.query.filter(User.username==data['username'])
+        exist_email=User.query.filter(User.email==data['email'])
+        if exist_email or exist_user:
+            return make_response({"message":"Username or email already exist."},200)
+        try:
+            new_user=User(
+                username=data['username'],
+                email=data['email'],
+                type=data['type']
+            )
+            new_user.password_hash=data['password']
+            db.session.add(new_user)
+            db.session.commit()
+            session['user_id']=new_user.id
+            session['user_type']=new_user.type
+            return make_response(new_user.to_dict(), 202)
+        
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
 
         
 
@@ -61,5 +69,4 @@ api.add_resource(AllUsers, '/users')
 
 
 if __name__ == '__main__':
-    #print(os.urandom(24))
     app.run( port = 5555, debug = True )
