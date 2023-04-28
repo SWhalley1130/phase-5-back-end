@@ -5,7 +5,7 @@ from flask_restful import Api, Resource
 import requests
 from models import User, Friend, Restaurant, SwipeInstance, SwipeSession
 from flask_bcrypt import Bcrypt
-from services import bcrypt,db
+from services import app,bcrypt,db
 import os
 from dotenv import load_dotenv
 from datetime import timedelta
@@ -13,7 +13,6 @@ from datetime import timedelta
 
 load_dotenv()
 
-app=Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY_S')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
@@ -24,24 +23,91 @@ migrate = Migrate(app, db)
 db.init_app(app)
 api=Api(app)
 
+
+class Login(Resource):
+    def post(self):
+        data=request.get_json()
+        user=User.query.filter(User.email==data['email']).first()
+        try:
+            if user and user.authenticate(data['password']):
+                session['user_id']=user.id
+                session['user_type']=user.type
+                return make_response({
+                    "id":user.id,
+                    "username":user.username, 
+                    "type":user.type,
+                }, 200)
+            else: 
+                return make_response({"message":"Login failed"})
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
+    
+    def get(self):
+        user_id=session.get('user_id')
+        try:
+            if not user_id:
+                return make_response({"message":"Unauthorized, not logged in."}, 401)
+            user=User.query.filter(User.id==user_id).first()
+            return make_response({
+                "id":user.id,
+                "username":user.username, 
+                "type":user.type,
+            },200)
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
+    
+    
+
+
 class OneUsers(Resource):
     def get(self,id):
-        pass
+        user=User.query.filter(User.id==id).first()
+        if not user:
+            return make_response({'message':"User not found"}, 404)
+        try:
+            return make_response(user.to_dict())
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
+
     def patch(self,id):
-        pass
+        user=User.query.filter(User.id==id).first()
+        if not user:
+            return make_response({'message':"User not found"}, 404)
+        try:
+            data=request.get_json()
+            for attr in data:
+                setattr(user, attr, data[attr])
+            db.session.add(user)
+            db.session.commit()
+            return make_response({'message':"Update successful"}, 200)
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
+    
     def delete(self,id):
-        pass
+        user=User.query.filter(User.id==id).first()
+        if not user:
+            return make_response({'message':"User not found"}, 404)
+        try:
+            db.session.delete(user)
+            db.session.commit()
+            return make_response({'message':"Delete successful"},200)
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
+
 
 class AllUsers(Resource):
     def get(self):
-        users=User.query.all()
-        users_dict=[u.to_dict() for u in users]
-        return make_response(users_dict, 200)
+        try:
+            users=User.query.all()
+            users_dict=[u.to_dict() for u in users]
+            return make_response(users_dict, 200)
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
 
     def post(self):
         data=request.get_json()
-        exist_user=User.query.filter(User.username==data['username'])
-        exist_email=User.query.filter(User.email==data['email'])
+        exist_user=User.query.filter(User.username==data['username']).first()
+        exist_email=User.query.filter(User.email==data['email']).first()
         if exist_email or exist_user:
             return make_response({"message":"Username or email already exist."},200)
         try:
@@ -56,14 +122,50 @@ class AllUsers(Resource):
             session['user_id']=new_user.id
             session['user_type']=new_user.type
             return make_response(new_user.to_dict(), 202)
-        
         except Exception as e:
             return make_response({"errors": [e.__str__()]}, 422)
 
-        
+class OneFriends(Resource):
+    def get(self,id):
+        pass
+    def patch(self,id):
+        pass
+    def delete(self,id):   
+        pass
 
+class AllFriends(Resource):
+    def get(self):
+        try:
+            friendships=Friend.query.all()
+            f_dict=[f.to_dict() for f in friendships]
+            return make_response(f_dict, 200)
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
+    def post(self):
+        data=request.get_json()
+        user1=User.query.filter(User.id==data['friend_one_id']).first()
+        user2=User.query.filter(User.id==data['friend_two_id']).first()
+        print(user1)
+        if user1==None or user2==None:
+            return make_response({"message":"One or more users not found"},404)
+        exist_combo1=Friend.query.filter(Friend.friend_one_id==user1.id,Friend.friend_two_id==user2.id).first()
+        exist_combo2=Friend.query.filter(Friend.friend_one_id==user2.id, Friend.friend_two_id==user1.id).first()
+        if exist_combo1 or exist_combo2:
+            return make_response({"message":"Friendship already exists"},200)
+        try:
+            friendship=Friend(friend_one_id=user1.id, friend_two_id=user2.id)
+            db.session.add(friendship)
+            db.session.commit()
+            return make_response(friendship.to_dict(), 202)
+        except Exception as e:
+            return make_response({"errors": [e.__str__()]}, 422)
+
+
+api.add_resource(Login, "/login")
 api.add_resource(OneUsers, '/users/<int:id>')
 api.add_resource(AllUsers, '/users')
+api.add_resource(OneFriends, '/friends/<int:id>')
+api.add_resource(AllFriends, '/friends')
 
 
 
