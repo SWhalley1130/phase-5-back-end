@@ -1,4 +1,4 @@
-from flask import Flask, request, make_response, jsonify, session
+from flask import Flask, request, make_response, session
 from flask_session import Session
 from flask_migrate import Migrate
 from flask_restful import Api, Resource
@@ -13,7 +13,7 @@ from datetime import timedelta
 
 load_dotenv()
 
-app.secret_key = os.environ.get('SECRET_KEY_S')
+app.secret_key = os.environ.get('secretkey')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
@@ -38,9 +38,9 @@ class Login(Resource):
                     "type":user.type,
                 }, 200)
             else: 
-                return make_response({"message":"Login failed"})
+                return make_response({"message":"Login failed"},400)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
     
     def get(self):
         user_id=session.get('user_id')
@@ -54,7 +54,7 @@ class Login(Resource):
                 "type":user.type,
             },200)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
     
     
 
@@ -67,7 +67,7 @@ class OneUsers(Resource):
         try:
             return make_response(user.to_dict())
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
 
     def patch(self,id):
         user=User.query.filter(User.id==id).first()
@@ -81,7 +81,7 @@ class OneUsers(Resource):
             db.session.commit()
             return make_response({'message':"Update successful"}, 200)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
     
     def delete(self,id):
         user=User.query.filter(User.id==id).first()
@@ -92,7 +92,7 @@ class OneUsers(Resource):
             db.session.commit()
             return make_response({'message':"Delete successful"},200)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
 
 
 class AllUsers(Resource):
@@ -102,14 +102,14 @@ class AllUsers(Resource):
             users_dict=[u.to_dict() for u in users]
             return make_response(users_dict, 200)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
 
     def post(self):
         data=request.get_json()
         exist_user=User.query.filter(User.username==data['username']).first()
         exist_email=User.query.filter(User.email==data['email']).first()
         if exist_email or exist_user:
-            return make_response({"message":"Username or email already exist."},200)
+            return make_response({"message":"Username or email already exist."},400)
         try:
             new_user=User(
                 username=data['username'],
@@ -121,17 +121,17 @@ class AllUsers(Resource):
             db.session.commit()
             session['user_id']=new_user.id
             session['user_type']=new_user.type
-            return make_response(new_user.to_dict(), 202)
+            return make_response({'username':new_user.username, 'type':new_user.type}, 202)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
 
 class OneFriends(Resource):
-    def get(self,id):
-        pass
-    def patch(self,id):
-        pass
     def delete(self,id):   
-        pass
+        try:
+            users_friends=Friend.query.filter(Friend.friend_one_id==id).all()
+
+        except Exception as e:
+            return make_response({"message": [e.__str__()]}, 422)
 
 class AllFriends(Resource):
     def get(self):
@@ -140,12 +140,12 @@ class AllFriends(Resource):
             f_dict=[f.to_dict() for f in friendships]
             return make_response(f_dict, 200)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
+        
     def post(self):
         data=request.get_json()
         user1=User.query.filter(User.id==data['friend_one_id']).first()
         user2=User.query.filter(User.id==data['friend_two_id']).first()
-        print(user1)
         if user1==None or user2==None:
             return make_response({"message":"One or more users not found"},404)
         exist_combo1=Friend.query.filter(Friend.friend_one_id==user1.id,Friend.friend_two_id==user2.id).first()
@@ -158,7 +158,7 @@ class AllFriends(Resource):
             db.session.commit()
             return make_response(friendship.to_dict(), 202)
         except Exception as e:
-            return make_response({"errors": [e.__str__()]}, 422)
+            return make_response({"message": [e.__str__()]}, 422)
 
 
 api.add_resource(Login, "/login")
