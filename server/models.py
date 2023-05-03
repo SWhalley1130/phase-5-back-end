@@ -10,7 +10,7 @@ from services import bcrypt,db
 class User(db.Model, SerializerMixin):
     __tablename__="users"
 
-    serialize_rules=('-friendships.users_f_backref', '-swipe_instances.users_si_backref',)
+    serialize_rules=('-_password_hash', '-friendships.users_f_backref', '-swipe_instances.users_si_backref',)
 
     id=db.Column(db.Integer, primary_key=True)
     username=db.Column(db.String, unique=True)
@@ -45,6 +45,7 @@ class Friend(db.Model, SerializerMixin):
     serialize_rules=('-users_f_backref',)
 
     id=db.Column(db.Integer, primary_key=True)
+    accepted=db.Column(db.Boolean, default=False)
     friend_one_id=db.Column(db.Integer, db.ForeignKey('users.id'))
     friend_two_id=db.Column(db.Integer, db.ForeignKey('users.id'))
 

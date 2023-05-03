@@ -23,6 +23,15 @@ migrate = Migrate(app, db)
 db.init_app(app)
 api=Api(app)
 
+class Logout(Resource):
+    def get(self):
+        try:
+            session.pop('user_id')
+            session.pop('user_type')
+            return make_response({"message":"Logout successfull"},200)
+        except Exception as e:
+            return make_response({"message": [e.__str__()]}, 422)
+
 
 class Login(Resource):
     def post(self):
@@ -129,14 +138,17 @@ class OneFriends(Resource):
     def delete(self,id):   
         try:
             users_friends=Friend.query.filter(Friend.friend_one_id==id).all()
-
+            for f in users_friends:
+                db.session.delete(f)
+            db.session.commit()
+            return make_response({'messsage':"Delete successful"})
         except Exception as e:
             return make_response({"message": [e.__str__()]}, 422)
 
 class AllFriends(Resource):
     def get(self):
         try:
-            friendships=Friend.query.all()
+            friendships=Friend.query.filter(Friend.friend_one_id==session['user_id'], Friend.friend_two_id==session['user_id']).all()
             f_dict=[f.to_dict() for f in friendships]
             return make_response(f_dict, 200)
         except Exception as e:
@@ -162,6 +174,7 @@ class AllFriends(Resource):
 
 
 api.add_resource(Login, "/login")
+api.add_resource(Logout, '/logout')
 api.add_resource(OneUsers, '/users/<int:id>')
 api.add_resource(AllUsers, '/users')
 api.add_resource(OneFriends, '/friends/<int:id>')
