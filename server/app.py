@@ -135,21 +135,56 @@ class AllUsers(Resource):
             return make_response({"message": [e.__str__()]}, 422)
 
 class OneFriends(Resource):
+    def patch(self, id):
+        try:
+            data=request.get_json()
+            exist_combo1=Friend.query.filter(Friend.friend_one_id==data['user1'],Friend.friend_two_id==data["user2"]).first()
+            exist_combo2=Friend.query.filter(Friend.friend_one_id==data["user2"], Friend.friend_two_id==data["user1"]).first()
+            print(data)
+            if exist_combo1: 
+                for attr in data:
+                    setattr(exist_combo1, attr, data[attr])
+                db.session.add(exist_combo1)
+                db.session.commit()
+                return make_response({"message":"Success"})
+            elif exist_combo2:
+                for attr in data:
+                    setattr(exist_combo2, attr, data[attr])
+                db.session.add(exist_combo2)
+                db.session.commit()
+                return make_response({"message":"Success"})
+            else: 
+                return make_response({"message":"Something went wrong"})
+
+        except Exception as e:
+            return make_response({"message": [e.__str__()]}, 422)
+
     def delete(self,id):   
         try:
-            users_friends=Friend.query.filter(Friend.friend_one_id==id).all()
-            for f in users_friends:
-                db.session.delete(f)
-            db.session.commit()
-            return make_response({'messsage':"Delete successful"})
+            data=request.get_json()
+            exist_combo1=Friend.query.filter(Friend.friend_one_id==data['user1'],Friend.friend_two_id==data['user2']).first()
+            exist_combo2=Friend.query.filter(Friend.friend_one_id==data['user2'], Friend.friend_two_id==data['user1']).first()
+            if exist_combo1:
+                db.session.delete(exist_combo1)
+                db.session.commit()
+                return make_response({'messsage':"Delete successful"})
+            elif exist_combo2:
+                db.session.delete(exist_combo2)
+                db.session.commit()
+                return make_response({'messsage':"Delete successful"})
+            else:
+                return make_response({'messsage':"Nothing to delete"})
         except Exception as e:
             return make_response({"message": [e.__str__()]}, 422)
 
 class AllFriends(Resource):
     def get(self):
         try:
-            friendships=Friend.query.filter(Friend.friend_one_id==session['user_id'], Friend.friend_two_id==session['user_id']).all()
-            f_dict=[f.to_dict() for f in friendships]
+            
+            friendships1=Friend.query.filter(Friend.friend_one_id==session['user_id']).all()
+            friendships2=Friend.query.filter(Friend.friend_two_id==session['user_id']).all()
+            allfriends=friendships1+friendships2
+            f_dict=[f.to_dict() for f in allfriends]
             return make_response(f_dict, 200)
         except Exception as e:
             return make_response({"message": [e.__str__()]}, 422)
