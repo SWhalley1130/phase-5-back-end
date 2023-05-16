@@ -10,7 +10,7 @@ from services import bcrypt,db
 class User(db.Model, SerializerMixin):
     __tablename__="users"
 
-    serialize_rules=('-_password_hash', '-friendships.users_f_backref', '-swipe_instances.users_si_backref',)
+    serialize_rules=('-_password_hash', '-friendships.users_f_backref', '-swipe_instances.users_si_backref',"-friendships.users_f_backref",)
 
     id=db.Column(db.Integer, primary_key=True)
     username=db.Column(db.String, unique=True)
@@ -19,6 +19,7 @@ class User(db.Model, SerializerMixin):
     _password_hash=db.Column(db.String)
     email=db.Column(db.String, unique=True, nullable=False)    
     friendships=db.relationship("Friend", foreign_keys="[Friend.friend_one_id]", backref='users_f_backref', cascade = "all,delete,delete-orphan")
+    #friendships=db.relationship("User", secondary='Friend', primaryjoin=id=="friendships.c.friend_one_id", secondaryjoin=id=="friendships.c.friend_two_id")
     swipe_instances=db.relationship("SwipeInstance", backref='users_si_backref', cascade = "all,delete,delete-orphan" )
 
 
@@ -38,6 +39,10 @@ class User(db.Model, SerializerMixin):
     
     def authenticate(self, password):
         return bcrypt.check_password_hash(self.password_hash, password.encode('utf-8'))
+    
+    def __repr__(self):
+        return f'{"id":self.id, "username":self.username, "type":self.type}'
+
     
 class Friend(db.Model, SerializerMixin):
     __tablename__='friends'

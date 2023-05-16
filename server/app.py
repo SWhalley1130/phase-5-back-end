@@ -180,12 +180,22 @@ class OneFriends(Resource):
 class AllFriends(Resource):
     def get(self):
         try:
-            
+            users=[]
             friendships1=Friend.query.filter(Friend.friend_one_id==session['user_id']).all()
+
+            for f in friendships1:
+                u=User.query.filter(User.id==f.friend_two_id).first().to_dict()
+                u['accepted']=f.accepted
+                users.append(u)
+
             friendships2=Friend.query.filter(Friend.friend_two_id==session['user_id']).all()
-            allfriends=friendships1+friendships2
-            f_dict=[f.to_dict() for f in allfriends]
-            return make_response(f_dict, 200)
+
+            for f in friendships2:
+                u=User.query.filter(User.id==f.friend_one_id).first().to_dict()
+                u['accepted']=f.accepted
+                users.append(u)
+
+            return make_response(users, 200)
         except Exception as e:
             return make_response({"message": [e.__str__()]}, 422)
         
@@ -206,6 +216,7 @@ class AllFriends(Resource):
             return make_response(friendship.to_dict(), 202)
         except Exception as e:
             return make_response({"message": [e.__str__()]}, 422)
+
 
 
 api.add_resource(Login, "/login")
