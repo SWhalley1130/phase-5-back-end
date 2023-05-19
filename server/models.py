@@ -22,7 +22,7 @@ class User(db.Model, SerializerMixin):
     #friendships=db.relationship("User", secondary='Friend', primaryjoin=id=="friendships.c.friend_one_id", secondaryjoin=id=="friendships.c.friend_two_id")
     swipe_instances=db.relationship("SwipeInstance", backref='users_si_backref', cascade = "all,delete,delete-orphan" )
 
-
+    # users.objects.aggregate(friendships).
     @hybrid_property
     def hash_password(self):
         return self._password_hash

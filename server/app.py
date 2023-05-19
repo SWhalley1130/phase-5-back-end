@@ -161,24 +161,25 @@ class OneFriends(Resource):
 
     def delete(self,id):   
         try:
-            data=request.get_json()
-            exist_combo1=Friend.query.filter(Friend.friend_one_id==data['user1'],Friend.friend_two_id==data['user2']).first()
-            exist_combo2=Friend.query.filter(Friend.friend_one_id==data['user2'], Friend.friend_two_id==data['user1']).first()
-            if exist_combo1:
-                db.session.delete(exist_combo1)
-                db.session.commit()
-                return make_response({'messsage':"Delete successful"})
-            elif exist_combo2:
-                db.session.delete(exist_combo2)
-                db.session.commit()
-                return make_response({'messsage':"Delete successful"})
-            else:
-                return make_response({'messsage':"Nothing to delete"})
+            friendship=Friend.query.filter(Friend.id==id).first()
+            db.session.delete(friendship)
+            return make_response({'messsage':"Delete successful"})
         except Exception as e:
             return make_response({"message": [e.__str__()]}, 422)
 
 class AllFriends(Resource):
     def get(self):
+
+        """
+        goal: list of people i am friends with
+
+        given a user, we want to find the friend one and friend two
+        return friend one and friend two
+
+        friend one (user)
+                friend one 
+                friend two 
+                """
         try:
             users=[]
             friendships1=Friend.query.filter(Friend.friend_one_id==session['user_id']).all()
@@ -186,6 +187,8 @@ class AllFriends(Resource):
             for f in friendships1:
                 u=User.query.filter(User.id==f.friend_two_id).first().to_dict()
                 u['accepted']=f.accepted
+                u['sender']='sender'
+                u['id']=f.id
                 users.append(u)
 
             friendships2=Friend.query.filter(Friend.friend_two_id==session['user_id']).all()
@@ -193,6 +196,8 @@ class AllFriends(Resource):
             for f in friendships2:
                 u=User.query.filter(User.id==f.friend_one_id).first().to_dict()
                 u['accepted']=f.accepted
+                u['sender']='receiver'
+                u['id']=f.id
                 users.append(u)
 
             return make_response(users, 200)
